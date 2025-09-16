@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CdA Improvement Calculator</title>
+    <!-- 
+    DEPLOYMENT REQUIREMENTS:
+    
+    IMPORTANT: This HTML file must be served from a web server (not opened directly as a file://)
+    Options:
+    1. GitHub Pages
+    2. Local server (e.g., Python: python -m http.server 8000)
+    3. Live Server extension in VS Code
+    4. Any web hosting service
+    
+    Directory Structure (relative to this HTML file):
+    ├── index.html (this file)
+    └── data/
+        ├── UDDS.csv
+        ├── JC08.csv
+        ├── JP1015.csv
+        ├── WLTC_1.csv
+        ├── WLTC_2.csv
+        ├── WLTC_3.csv
+        ├── WMTC_1.csv
+        ├── WMTC_1s.csv
+        ├── WMTC_2.csv
+        └── WMTC_3.csv
+    
+    CSV FORMAT (required columns):
+    - "Elapsed Time (s)" - time in seconds
+    - "Speed (kph)" - speed in kilometers per hour
+    
+    The calculator will NOT work without these CSV files.
+    File paths are relative to this HTML file's location.
+    -->
+    <script src="https://cdn.jsdelivr.net/npm/plotly.js@2.27.0/dist/plotly.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f8f9fa;
+            color: #2c3e50;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-left: 4px solid #E02B20;
+            border: 1px solid #e9ecef;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: #E02B20;
+            margin: 10px 0 0 0;
+            font-weight: 500;
+        }
+
+        .input-section {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-left: 3px solid #E02B20;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        input[type="number"] {
+            padding: 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 16px;
+            background: white;
+            color: #333;
+            font-weight: 500;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #E02B20;
+            box-shadow: 0 0 0 3px rgba(224, 43, 32, 0.1);
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        input[type="radio"] {
+            cursor: pointer;
+        }
+
+        button {
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+        }
+
+        .results-section {
+            margin-top: 30px;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .result-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-left: 3px solid #E02B20;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .result-card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .result-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #E02B20;
+            margin-bottom: 5px;
+        }
+
+        .result-label {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .result-row:last-child {
+            border-bottom: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .average-row {
+            font-weight: bold;
+            background: #f0f0f0;
+        }
+
+        .plot-container {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .improvement-indicator {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            padding: 20px;
+            border-top: 2px solid #E02B20;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>CdA Improvement Calculator</h1>
+            <p class="subtitle">VEHICLE ENERGY ANALYSIS</p>
+        </div>
+
+        <div class="input-section">
+            <div class="input-grid">
+                <div class="input-group">
+                    <label for="mass">Vehicle Mass (kg)</label>
+                    <input type="number" id="mass" value="201" min="100" max="5000" step="10">
+                </div>
+                <div class="input-group">
+                    <label for="cdaBefore">CdA Before (m²)</label>
+                    <input type="number" id="cdaBefore" value="0.420" min="0.1" max="2.0" step="0.001">
+                </div>
+                <div class="input-group">
+                    <label for="cdaAfter">CdA After (m²)</label>
+                    <input type="number" id="cdaAfter" value="0.378" min="0.1" max="2.0" step="0.001">
+                </div>
+                <div class="input-group">
+                    <label for="topSpeed">Current Top Speed (km/h)</label>
+                    <input type="number" id="topSpeed" value="302" min="50" max="400" step="1">
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="radio-group">
+                    <label class="radio-label">
+                        <input type="radio" name="displayMode" value="absolute" checked>
+                        Absolute Values
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="displayMode" value="percentage">
+                        Percentage Values
+                    </label>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <button onclick="runAnalysis()">RUN ANALYSIS</button>
+                    <span id="loadingStatus" style="color: #6c757d; font-size: 14px;"></span>
+                </div>
+            </div>
+        </div>
+
+        <div id="results" class="results-section hidden">
+            <div id="noDataWarning" class="result-card" style="background-color: #fee; border-color: #fcc; display: none;">
+                <h3 style="color: #e74c3c;">⚠ No Data Available</h3>
+                <p><strong>Common Issues:</strong></p>
+                <ul style="margin-top: 10px;">
+                    <li><strong>If opened directly from file system:</strong> Use a web server instead (python -m http.server 8000)</li>
+                    <li><strong>If on a web server:</strong> Check that the data folder is in the same directory as this HTML file</li>
+                    <li><strong>File names must be exact:</strong> UDDS.csv, not udds.csv or UDDS.CSV</li>
+                </ul>
+                <p style="margin-top: 15px;"><strong>Expected files (relative to HTML):</strong></p>
+                <ul style="margin-top: 10px; font-family: monospace; font-size: 0.9em;">
+                    <li>data/UDDS.csv</li>
+                    <li>data/JC08.csv</li>
+                    <li>data/JP1015.csv</li>
+                    <li>data/WLTC_1.csv</li>
+                    <li>data/WLTC_2.csv</li>
+                    <li>data/WLTC_3.csv</li>
+                    <li>data/WMTC_1.csv</li>
+                    <li>data/WMTC_1s.csv</li>
+                    <li>data/WMTC_2.csv</li>
+                    <li>data/WMTC_3.csv</li>
+                </ul>
+                <p style="margin-top: 15px;">Each CSV must contain columns: "Elapsed Time (s)" and "Speed (kph)"</p>
+                <p style="margin-top: 15px; font-style: italic;">Check browser console (F12) for detailed error messages.</p>
+            </div>
+            
+            <div class="results-grid">
+                <div class="result-card">
+                    <h3>Top Speed Improvement</h3>
+                    <div class="result-value" id="topSpeedResult">--</div>
+                    <div class="result-label" id="topSpeedLabel">km/h</div>
+                </div>
+                <div class="result-card">
+                    <h3>Drag Force at Top Speed</h3>
+                    <div class="result-row">
+                        <span>Before:</span>
+                        <span id="dragForceBefore">--</span>
+                    </div>
+                    <div class="result-row">
+                        <span>After:</span>
+                        <span id="dragForceAfter">--</span>
+                    </div>
+                    <div class="result-row improvement-indicator">
+                        <span>Reduction:</span>
+                        <span id="dragForceReduction">--</span>
+                    </div>
+                </div>
+            </div>
+                <div class="result-card">
+                    <h3>Top Speed Improvement</h3>
+                    <div class="result-value" id="topSpeedResult">--</div>
+                    <div class="result-label" id="topSpeedLabel">km/h</div>
+                </div>
+                <div class="result-card">
+                    <h3>Drag Force at Top Speed</h3>
+                    <div class="result-row">
+                        <span>Before:</span>
+                        <span id="dragForceBefore">--</span>
+                    </div>
+                    <div class="result-row">
+                        <span>After:</span>
+                        <span id="dragForceAfter">--</span>
+                    </div>
+                    <div class="result-row improvement-indicator">
+                        <span>Reduction:</span>
+                        <span id="dragForceReduction">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="result-card" id="energyTableCard">
+                <h3>Energy Consumption per km by Drive Cycle</h3>
+                <table id="energyTable">
+                    <thead>
+                        <tr>
+                            <th>Drive Cycle</th>
+                            <th>Before</th>
+                            <th>After</th>
+                            <th>Improvement</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="plot-container">
+                <div id="dragReductionPlot"></div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>INVENT • INNOVATE • CREATE</p>
+        </div>
+    </div>
+
+    <script>
+        // Constants matching the original tool
+        const CONSTANTS = {
+            CRR: 0.02,           // rolling resistance coefficient
+            g: 9.81,             // gravitational acceleration (m/s²)
+            rho: 1.225,          // air density (kg/m³)
+            efficiency: 1        // drivetrain efficiency
+        };
+
+        // CSV file mapping - paths are relative to this HTML file's location
+        // If HTML is at /index.html, then CSV files should be at /data/*.csv
+        const CSV_FILES = {
+            'UDDS': 'data/UDDS.csv',
+            'JC08': 'data/JC08.csv',
+            'JP1015': 'data/JP1015.csv',
+            'WLTC_1': 'data/WLTC_1.csv',
+            'WLTC_2': 'data/WLTC_2.csv',
+            'WLTC_3': 'data/WLTC_3.csv',
+            'WMTC_1': 'data/WMTC_1.csv',
+            'WMTC_1s': 'data/WMTC_1s.csv',
+            'WMTC_2': 'data/WMTC_2.csv',
+            'WMTC_3': 'data/WMTC_3.csv'
+        };
+
+        // Diagnostic function for debugging CSV loading issues
+        window.testCSVLoading = async function() {
+            console.log('=== CSV Loading Diagnostic ===');
+            console.log('Current URL:', window.location.href);
+            console.log('Protocol:', window.location.protocol);
+            
+            if (window.location.protocol === 'file:') {
+                console.error('ERROR: Running from file:// protocol. Must use a web server!');
+                return;
+            }
+            
+            const testFile = 'data/UDDS.csv';
+            const fullUrl = new URL(testFile, window.location.href).href;
+            
+            console.log('Testing with:', testFile);
+            console.log('Full URL:', fullUrl);
+            
+            try {
+                const response = await fetch(testFile);
+                console.log('Response status:', response.status);
+                console.log('Response headers:');
+                response.headers.forEach((value, key) => {
+                    console.log(`  ${key}: ${value}`);
+                });
+                
+                if (response.ok) {
+                    const text = await response.text();
+                    console.log('File loaded successfully!');
+                    console.log('First 200 characters:', text.substring(0, 200));
+                } else {
+                    console.error('File not found or error:', response.status, response.statusText);
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                console.error('Possible causes:');
+                console.error('1. File does not exist at expected path');
+                console.error('2. CORS issue (if loading from different domain)');
+                console.error('3. Server configuration issue');
+            }
+            
+            console.log('=== End Diagnostic ===');
+            console.log('To manually test, type: testCSVLoading()');
+        };
+        
+        // Store loaded drive cycles
+        let DRIVE_CYCLES = {};
+        let dataLoadingComplete = false;
+
+        // Parse CSV text to data
+        function parseCSV(text) {
+            const lines = text.trim().split('\n');
+            if (lines.length < 2) {
+                console.error('CSV file is empty or has no data rows');
+                return null;
+            }
+            
+            const headers = lines[0].split(',').map(h => h.trim());
+            
+            // Find column indices - exact format expected
+            const timeIndex = headers.indexOf('Elapsed Time (s)');
+            const speedIndex = headers.indexOf('Speed (kph)');
+            
+            if (timeIndex === -1 || speedIndex === -1) {
+                console.error('CSV missing required columns: "Elapsed Time (s)" and "Speed (kph)". Headers found:', headers);
+                return null;
+            }
+            
+            const data = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim());
+                const time = parseFloat(values[timeIndex]);
+                const speed = parseFloat(values[speedIndex]);
+                
+                if (!isNaN(time) && !isNaN(speed)) {
+                    data.push({ time, speed });
+                }
+            }
+            
+            if (data.length === 0) {
+                console.error('No valid data points found in CSV');
+                return null;
+            }
+            
+            return data;
+        }
+
+        // Load all CSV files
+        async function loadDriveCycles() {
+            const statusEl = document.getElementById('loadingStatus');
+            if (statusEl) statusEl.textContent = 'Loading drive cycle data...';
+            
+            // Test if we can access the data folder at all
+            console.log('Testing data folder access...');
+            try {
+                const testResponse = await fetch('data/');
+                console.log('Data folder response:', testResponse.status, testResponse.statusText);
+            } catch (e) {
+                console.log('Could not access data folder directly (this is normal on some servers)');
+            }
+            
+            const loadPromises = [];
+            let successCount = 0;
+            let failedCycles = [];
+            
+            // Try to detect the correct base path
+            const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+            console.log('Base URL for CSV loading:', baseUrl);
+            
+            // Fetch will resolve paths relative to the HTML file location
+            for (const [cycleName, filePath] of Object.entries(CSV_FILES)) {
+                const fullUrl = new URL(filePath, window.location.href).href;
+                console.log(`Attempting to load ${cycleName} from: ${fullUrl}`);
+                
+                const promise = fetch(filePath)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+                        }
+                        console.log(`Successfully fetched ${cycleName}`);
+                        return response.text();
+                    })
+                    .then(text => {
+                        const data = parseCSV(text);
+                        if (data) {
+                            DRIVE_CYCLES[cycleName] = data;
+                            console.log(`Loaded ${cycleName}: ${data.length} points`);
+                            successCount++;
+                        } else {
+                            throw new Error('Invalid CSV format');
+                        }
+                    })
+                    .catch(error => {
+                        const fullPath = new URL(filePath, window.location.href).href;
+                        console.error(`Failed to load ${cycleName}:`);
+                        console.error(`  Attempted path: ${filePath}`);
+                        console.error(`  Full URL: ${fullPath}`);
+                        console.error(`  Error: ${error.message}`);
+                        
+                        if (error.message.includes('404')) {
+                            console.error(`  File not found. Check that ${filePath} exists.`);
+                        } else if (error.message.includes('Failed to fetch')) {
+                            console.error(`  Network error. Check console for CORS issues.`);
+                        }
+                        
+                        failedCycles.push(cycleName);
+                    });
+                
+                loadPromises.push(promise);
+            }
+            
+            await Promise.all(loadPromises);
+            dataLoadingComplete = true;
+            
+            if (statusEl) {
+                if (successCount === Object.keys(CSV_FILES).length) {
+                    statusEl.textContent = `✓ All ${successCount} drive cycles loaded`;
+                    statusEl.style.color = '#2ecc71';
+                } else if (successCount > 0) {
+                    statusEl.textContent = `⚠ Loaded ${successCount}/${Object.keys(CSV_FILES).length} cycles. Missing: ${failedCycles.join(', ')}`;
+                    statusEl.style.color = '#f39c12';
+                } else {
+                    statusEl.innerHTML = `✗ No CSV files found. Open console (F12) and run: <code style="background: #f0f0f0; padding: 2px 4px;">testCSVLoading()</code>`;
+                    statusEl.style.color = '#e74c3c';
+                }
+            }
+            
+            console.log(`Drive cycle loading complete. Successfully loaded ${successCount} cycles:`, Object.keys(DRIVE_CYCLES));
+            
+            if (successCount === 0) {
+                console.error('=== CSV LOADING FAILED ===');
+                console.error('No CSV files could be loaded. Common issues:');
+                console.error('1. Not using a web server (file:// protocol won\'t work)');
+                console.error('2. data folder not in same directory as HTML');
+                console.error('3. File names don\'t match exactly (case-sensitive on some servers)');
+                console.error('4. CSV files are missing or corrupted');
+                console.error('');
+                console.error('Run diagnostic test by typing in console: testCSVLoading()');
+                console.error('=========================');
+                
+                if (window.location.hostname === 'github.io' || window.location.hostname.includes('github')) {
+                    console.warn('GitHub Pages detected - file names are case-sensitive!');
+                    console.warn('Make sure: UDDS.csv not udds.csv or UDDS.CSV');
+                }
+            }
+        }
+
+        function inferPower(topSpeedKmh, mass, cda) {
+            const vMs = topSpeedKmh / 3.6;
+            const effectivePower = (0.5 * CONSTANTS.rho * cda * Math.pow(vMs, 3) +
+                                   CONSTANTS.CRR * mass * CONSTANTS.g * vMs);
+            return effectivePower / CONSTANTS.efficiency;
+        }
+
+        function solveTopSpeed(power, mass, cda) {
+            const target = power * CONSTANTS.efficiency;
+            let v = 10.0; // initial guess in m/s
+
+            for (let i = 0; i < 50; i++) {
+                const f = (0.5 * CONSTANTS.rho * cda * Math.pow(v, 3) +
+                          CONSTANTS.CRR * mass * CONSTANTS.g * v - target);
+                const df = (1.5 * CONSTANTS.rho * cda * Math.pow(v, 2) +
+                           CONSTANTS.CRR * mass * CONSTANTS.g);
+
+                const newV = v - f / df;
+                if (Math.abs(newV - v) < 1e-6) break;
+                v = newV;
+            }
+
+            return v * 3.6; // convert to km/h
+        }
+
+        function calculateDragForce(speedKmh, mass, cda) {
+            const vMs = speedKmh / 3.6;
+            const fRoll = CONSTANTS.CRR * mass * CONSTANTS.g;
+            const fAero = 0.5 * CONSTANTS.rho * cda * Math.pow(vMs, 2);
+            const fTotal = fRoll + fAero;
+
+            return { rolling: fRoll, aerodynamic: fAero, total: fTotal };
+        }
+
+        function analyzeDriveCycle(cycleData, mass, cda) {
+            let totalEnergyJ = 0;
+            let totalDistanceM = 0;
+            let maxPowerW = 0;
+
+            let vPrevMs = 0; // Initial speed is 0
+
+            for (let i = 0; i < cycleData.length; i++) {
+                const vCurrentMs = cycleData[i].speed / 3.6;
+                let acceleration = 0;
+                let dt = 0;
+
+                if (i === 0) {
+                    acceleration = 0;
+                    dt = cycleData[0].time;
+                } else {
+                    dt = cycleData[i].time - cycleData[i - 1].time;
+                    if (dt <= 0) continue;
+                    acceleration = (vCurrentMs - vPrevMs) / dt;
+                }
+
+                // Calculate forces
+                const fSlope = 0; // roadSlope = 0
+                const fRoll = CONSTANTS.CRR * mass * CONSTANTS.g;
+                const fAero = 0.5 * CONSTANTS.rho * cda * Math.pow(vCurrentMs, 2);
+                const fAccel = mass * acceleration;
+
+                // Total force and power
+                const fTotal = fSlope + fRoll + fAero + fAccel;
+                const powerW = fTotal * vCurrentMs;
+
+                // Only positive power
+                if (powerW > 0) {
+                    maxPowerW = Math.max(maxPowerW, powerW);
+                    if (i > 0) {
+                        const energyJ = powerW * dt;
+                        totalEnergyJ += energyJ;
+                    }
+                }
+
+                // Distance integration
+                if (i > 0) {
+                    const distanceM = vCurrentMs * dt;
+                    totalDistanceM += distanceM;
+                }
+
+                vPrevMs = vCurrentMs;
+            }
+
+            // Convert units
+            const totalEnergyKwh = totalEnergyJ / 3.6e6;
+            const totalDistanceKm = totalDistanceM / 1000;
+            const energyPerKm = (totalEnergyKwh * 1000) / totalDistanceKm;
+
+            return {
+                totalEnergy: totalEnergyKwh,
+                totalDistance: totalDistanceKm,
+                energyPerKm: energyPerKm,
+                maxPower: maxPowerW / 1000
+            };
+        }
+
+        async function runAnalysis() {
+            // Show loading message if data not ready
+            if (!dataLoadingComplete) {
+                const statusEl = document.getElementById('loadingStatus');
+                if (statusEl) {
+                    statusEl.textContent = 'Please wait, CSV data is loading...';
+                    statusEl.style.color = '#f39c12';
+                }
+                return;
+            }
+            
+            if (Object.keys(DRIVE_CYCLES).length === 0) {
+                const statusEl = document.getElementById('loadingStatus');
+                if (statusEl) {
+                    statusEl.textContent = '✗ Error: No drive cycle data available. Please ensure the data folder is next to this HTML file';
+                    statusEl.style.color = '#e74c3c';
+                }
+                
+                // Show the no data warning
+                document.getElementById('results').classList.remove('hidden');
+                document.getElementById('noDataWarning').style.display = 'block';
+                
+                // Hide other result sections
+                const resultsGrid = document.querySelector('.results-grid');
+                if (resultsGrid) resultsGrid.style.display = 'none';
+                const energyTableCard = document.getElementById('energyTableCard');
+                if (energyTableCard) energyTableCard.style.display = 'none';
+                const plotContainer = document.querySelector('.plot-container');
+                if (plotContainer) plotContainer.style.display = 'none';
+                
+                return;
+            } else {
+                // Hide the warning if data is available
+                document.getElementById('noDataWarning').style.display = 'none';
+                const resultsGrid = document.querySelector('.results-grid');
+                if (resultsGrid) resultsGrid.style.display = '';
+                const energyTableCard = document.getElementById('energyTableCard');
+                if (energyTableCard) energyTableCard.style.display = '';
+                const plotContainer = document.querySelector('.plot-container');
+                if (plotContainer) plotContainer.style.display = '';
+            }
+            
+            const mass = parseFloat(document.getElementById('mass').value);
+            const cdaBefore = parseFloat(document.getElementById('cdaBefore').value);
+            const cdaAfter = parseFloat(document.getElementById('cdaAfter').value);
+            const currentTopSpeed = parseFloat(document.getElementById('topSpeed').value);
+            const displayMode = document.querySelector('input[name="displayMode"]:checked').value;
+
+            // Calculate power from current configuration
+            const power = inferPower(currentTopSpeed, mass, cdaBefore);
+
+            // Calculate new top speed
+            const newTopSpeed = solveTopSpeed(power, mass, cdaAfter);
+            const topSpeedImprovement = newTopSpeed - currentTopSpeed;
+            const topSpeedImprovementPercent = (topSpeedImprovement / currentTopSpeed) * 100;
+
+            // Update top speed display
+            const topSpeedResult = document.getElementById('topSpeedResult');
+            const topSpeedLabel = document.getElementById('topSpeedLabel');
+            
+            if (displayMode === 'absolute') {
+                topSpeedResult.textContent = newTopSpeed.toFixed(1);
+                topSpeedLabel.textContent = `km/h (${topSpeedImprovement > 0 ? '+' : ''}${topSpeedImprovement.toFixed(1)} km/h)`;
+            } else {
+                topSpeedResult.textContent = `${topSpeedImprovementPercent > 0 ? '+' : ''}${topSpeedImprovementPercent.toFixed(1)}%`;
+                topSpeedLabel.textContent = 'change from baseline';
+            }
+
+            // Calculate drag forces at top speed
+            const dragBefore = calculateDragForce(currentTopSpeed, mass, cdaBefore);
+            const dragAfter = calculateDragForce(currentTopSpeed, mass, cdaAfter);
+            const dragReduction = dragBefore.total - dragAfter.total;
+            const dragReductionPercent = (dragReduction / dragBefore.total) * 100;
+
+            // Update drag force display
+            if (displayMode === 'absolute') {
+                document.getElementById('dragForceBefore').textContent = `${dragBefore.total.toFixed(1)} N`;
+                document.getElementById('dragForceAfter').textContent = `${dragAfter.total.toFixed(1)} N`;
+                document.getElementById('dragForceReduction').textContent = `${dragReduction.toFixed(1)} N`;
+            } else {
+                document.getElementById('dragForceBefore').textContent = 'Baseline';
+                document.getElementById('dragForceAfter').textContent = `${-dragReductionPercent.toFixed(1)}%`;
+                document.getElementById('dragForceReduction').textContent = `${dragReductionPercent.toFixed(1)}%`;
+            }
+
+            // Analyze drive cycles
+            const energyResults = [];
+            let totalEnergyBefore = 0;
+            let totalEnergyAfter = 0;
+            let cycleCount = 0;
+
+            // Only analyze cycles that were successfully loaded
+            for (const [cycleName, cycleData] of Object.entries(DRIVE_CYCLES)) {
+                if (!cycleData || cycleData.length === 0) {
+                    console.warn(`Skipping ${cycleName}: No data available`);
+                    continue;
+                }
+                
+                const resultBefore = analyzeDriveCycle(cycleData, mass, cdaBefore);
+                const resultAfter = analyzeDriveCycle(cycleData, mass, cdaAfter);
+                
+                const improvement = resultBefore.energyPerKm - resultAfter.energyPerKm;
+                const improvementPercent = (improvement / resultBefore.energyPerKm) * 100;
+                
+                energyResults.push({
+                    cycle: cycleName,
+                    before: resultBefore.energyPerKm,
+                    after: resultAfter.energyPerKm,
+                    improvement: improvement,
+                    improvementPercent: improvementPercent
+                });
+                
+                totalEnergyBefore += resultBefore.energyPerKm;
+                totalEnergyAfter += resultAfter.energyPerKm;
+                cycleCount++;
+            }
+
+            if (cycleCount === 0) {
+                console.error('No cycles analyzed');
+                document.getElementById('results').classList.add('hidden');
+                return;
+            }
+
+            // Calculate averages
+            const avgBefore = totalEnergyBefore / cycleCount;
+            const avgAfter = totalEnergyAfter / cycleCount;
+            const avgImprovement = avgBefore - avgAfter;
+            const avgImprovementPercent = (avgImprovement / avgBefore) * 100;
+
+            // Update energy table
+            const tbody = document.querySelector('#energyTable tbody');
+            tbody.innerHTML = '';
+
+            energyResults.forEach(result => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${result.cycle.replace('_', ' ')}</td>
+                    <td>${displayMode === 'absolute' ? result.before.toFixed(1) + ' Wh/km' : 'Baseline'}</td>
+                    <td>${displayMode === 'absolute' ? result.after.toFixed(1) + ' Wh/km' : (-result.improvementPercent).toFixed(1) + '%'}</td>
+                    <td class="improvement-indicator">${displayMode === 'absolute' ? result.improvement.toFixed(1) + ' Wh/km' : result.improvementPercent.toFixed(1) + '%'}</td>
+                `;
+            });
+
+            // Add average row
+            const avgRow = tbody.insertRow();
+            avgRow.className = 'average-row';
+            avgRow.innerHTML = `
+                <td>AVERAGE</td>
+                <td>${displayMode === 'absolute' ? avgBefore.toFixed(1) + ' Wh/km' : 'Baseline'}</td>
+                <td>${displayMode === 'absolute' ? avgAfter.toFixed(1) + ' Wh/km' : (-avgImprovementPercent).toFixed(1) + '%'}</td>
+                <td class="improvement-indicator">${displayMode === 'absolute' ? avgImprovement.toFixed(1) + ' Wh/km' : avgImprovementPercent.toFixed(1) + '%'}</td>
+            `;
+
+            // Create drag reduction plot
+            const speeds = [];
+            const dragReductions = [];
+            const dragReductionsPercent = [];
+
+            for (let speed = 0; speed <= currentTopSpeed; speed += 5) {
+                speeds.push(speed);
+                const forceBefore = calculateDragForce(speed, mass, cdaBefore).total;
+                const forceAfter = calculateDragForce(speed, mass, cdaAfter).total;
+                const reduction = forceBefore - forceAfter;
+                dragReductions.push(reduction);
+                dragReductionsPercent.push(forceBefore > 0 ? (reduction / forceBefore) * 100 : 0);
+            }
+
+            const plotData = [{
+                x: speeds,
+                y: displayMode === 'absolute' ? dragReductions : dragReductionsPercent,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Drag Reduction',
+                line: { color: '#E02B20', width: 3 }
+            }];
+
+            const layout = {
+                title: 'Drag Force Reduction vs Vehicle Speed',
+                xaxis: {
+                    title: 'Vehicle Speed (km/h)',
+                    gridcolor: '#e9ecef',
+                    zerolinecolor: '#dee2e6'
+                },
+                yaxis: {
+                    title: displayMode === 'absolute' ? 'Drag Reduction (N)' : 'Drag Reduction (%)',
+                    gridcolor: '#e9ecef',
+                    zerolinecolor: '#dee2e6'
+                },
+                plot_bgcolor: 'white',
+                paper_bgcolor: 'white',
+                font: { color: '#2c3e50' },
+                margin: { t: 60, b: 60, l: 60, r: 60 }
+            };
+
+            // Ensure Plotly is loaded
+            if (typeof Plotly !== 'undefined') {
+                Plotly.newPlot('dragReductionPlot', plotData, layout);
+            } else {
+                console.error('Plotly library not loaded');
+                document.getElementById('dragReductionPlot').innerHTML = '<p style="padding: 20px; text-align: center; color: #666;">Chart library loading error. Please refresh the page.</p>';
+            }
+
+            // Show results
+            document.getElementById('results').classList.remove('hidden');
+            
+            // Clear status message after successful analysis
+            const statusEl = document.getElementById('loadingStatus');
+            if (statusEl) {
+                statusEl.textContent = '';
+            }
+        }
+
+        // Initialize with example values
+        window.addEventListener('load', async () => {
+            // Check if running from file:// protocol
+            if (window.location.protocol === 'file:') {
+                const statusEl = document.getElementById('loadingStatus');
+                if (statusEl) {
+                    statusEl.innerHTML = '⚠️ This file must be served from a web server. <br>Use: python -m http.server 8000 or VS Code Live Server';
+                    statusEl.style.color = '#e74c3c';
+                }
+                console.error('ERROR: Cannot load CSV files when opening HTML directly from file system.');
+                console.error('Please serve this file from a web server:');
+                console.error('- Python 3: python -m http.server 8000');
+                console.error('- Python 2: python -m SimpleHTTPServer 8000');
+                console.error('- VS Code: Use Live Server extension');
+                console.error('- Or upload to GitHub Pages');
+                return;
+            }
+            
+            // Log the current location for debugging path issues
+            console.log('HTML file location:', window.location.href);
+            console.log('Base URL:', window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')));
+            console.log('Expected data folder:', new URL('data/', window.location.href).href);
+            
+            // Load drive cycle data
+            console.log('Loading drive cycle data from CSV files...');
+            const statusEl = document.getElementById('loadingStatus');
+            if (statusEl) statusEl.textContent = 'Initializing...';
+            
+            await loadDriveCycles();
+            
+            // Check if Plotly loaded
+            if (typeof Plotly === 'undefined') {
+                console.warn('Plotly not loaded yet, attempting to load from alternative CDN');
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/plotly.js-dist@2.27.0/plotly.min.js';
+                script.onload = () => console.log('Plotly loaded successfully');
+                document.head.appendChild(script);
+            }
+            
+            // Set default CdA After to 10% reduction
+            const cdaBefore = parseFloat(document.getElementById('cdaBefore').value);
+            document.getElementById('cdaAfter').value = (cdaBefore * 0.9).toFixed(3);
+            
+            if (Object.keys(DRIVE_CYCLES).length > 0) {
+                console.log('Initialization complete. Ready for analysis.');
+            } else {
+                console.error('Initialization failed: No CSV files loaded.');
+                console.error('Type testCSVLoading() in console to diagnose the issue.');
+            }
+        });
+    </script>
+</body>
+</html>
