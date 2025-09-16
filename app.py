@@ -333,12 +333,12 @@ CSV_FILES = {
     'UDDS': 'data/UDDS.csv',
     'JC08': 'data/JC08.csv',
     'JP1015': 'data/JP1015.csv',
-    'WLTC_1': 'data/WLTC_1.csv'
-    'WLTC_2': 'data/WLTC_2.csv'
-    'WLTC_3': 'data/WLTC_3.csv'
-    'WMTC_1': 'data/WMTC_1.csv'
-    'WMTC_1s': 'data/WMTC_1s.csv'
-    'WMTC_2': 'data/WMTC_2.csv'
+    'WLTC_1': 'data/WLTC_1.csv',
+    'WLTC_2': 'data/WLTC_2.csv',
+    'WLTC_3': 'data/WLTC_3.csv',
+    'WMTC_1': 'data/WMTC_1.csv',
+    'WMTC_1s': 'data/WMTC_1s.csv',
+    'WMTC_2': 'data/WMTC_2.csv',
     'WMTC_3': 'data/WMTC_3.csv'
 }
 
