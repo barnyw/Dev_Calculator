@@ -333,7 +333,13 @@ CSV_FILES = {
     'UDDS': 'data/UDDS.csv',
     'JC08': 'data/JC08.csv',
     'JP1015': 'data/JP1015.csv',
-    'WLTP_3': 'data/WLTC_3.csv'
+    'WLTC_1': 'data/WLTC_1.csv'
+    'WLTC_2': 'data/WLTC_2.csv'
+    'WLTC_3': 'data/WLTC_3.csv'
+    'WMTC_1': 'data/WMTC_1.csv'
+    'WMTC_1s': 'data/WMTC_1s.csv'
+    'WMTC_2': 'data/WMTC_2.csv'
+    'WMTC_3': 'data/WMTC_3.csv'
 }
 
 # Color palette
@@ -992,8 +998,8 @@ def main():
         cycle_cols = st.columns(5)
         selected_cycles = []
 
-        cycle_names = ['JC08', 'JP1015', 'WLTP_3', 'UDDS']
-        cycle_labels = ['JC08', 'JP1015', 'WLTP_3', 'UDDS']
+        cycle_names = ['JC08', 'JP1015', 'WLTC_1', 'WLTC_2', 'WLTC_3', 'WMTC_1', 'WMTC_1s', 'WMTC_2', 'WMTC_3', 'UDDS']
+        cycle_labels = ['JC08', 'JP1015', 'WLTC_1', 'WLTC_2', 'WLTC_3', 'WMTC_1', 'WMTC_1s', 'WMTC_2', 'WMTC_3', 'UDDS']
 
         for i, (cycle_name, label) in enumerate(zip(cycle_names, cycle_labels)):
             with cycle_cols[i]:
